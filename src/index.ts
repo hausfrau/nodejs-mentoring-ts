@@ -1,15 +1,16 @@
-import express, { Request, Response } from 'express';
+import express, { json } from 'express';
 
-const app = express();
+import { Routes } from './types/routes';
+
+import { router } from './api/users-api';
+
+export const app = express();
 
 const { PORT = 3000 } = process.env;
 
-app.get('/', (_REQ: Request, res: Response) => {
-    res.send({
-        message: 'hello world'
-    });
-});
+app.use(json());
+app.use(Routes.USERS, router);
 
 app.listen(PORT, () => {
-    console.log(`server started at http://localhost:${PORT}`);
+    console.log(`Server started at http://localhost:${PORT}`);
 });
