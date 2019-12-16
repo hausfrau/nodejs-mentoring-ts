@@ -1,5 +1,7 @@
-import { Request, Response, Router } from 'express';
 import uuidv1 from 'uuid/v1';
+import { Request, Response, Router } from 'express';
+
+import { getAutosuggestUsers } from '../utils/users';
 
 import { UsersApi } from '../types/users-api';
 
@@ -8,7 +10,14 @@ let users: UsersApi.User[] = [];
 export const router = Router();
 
 router
-    .get('/', (_REQ, res: Response) => {
+    .get('/', (req: Request, res: Response) => {
+        if (req.query.login) {
+            const limit = parseInt(req.query.limit, 10) || 1;
+            const { login } = req.query;
+
+            res.json(getAutosuggestUsers(users, login, limit));
+        }
+
         res.json(users);
     })
     .get('/:id', (req: Request<UsersApi.Params>, res: Response) => {
