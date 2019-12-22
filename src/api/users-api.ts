@@ -1,64 +1,92 @@
 import uuidv1 from 'uuid/v1';
-import { Request, Response, Router } from 'express';
+import { Response, Router } from 'express';
+import {
+    createValidator,
+    ValidatedRequest
+} from 'express-joi-validation';
 
 import { getAutosuggestUsers } from '../utils/users';
 
 import { UsersApi } from '../types/users-api';
 
+import * as schemes from '../schemes/users-api';
+
 let users: UsersApi.User[] = [];
 
 export const router = Router();
+const validator = createValidator();
 
 router
-    .get('/', (req: Request, res: Response) => {
-        if (req.query.login) {
-            const limit = parseInt(req.query.limit, 10) || 1;
-            const { login } = req.query;
+    .get(
+        '/',
+        validator.query(schemes.getUsersSchema),
+        (req: ValidatedRequest<UsersApi.GetUsersSchema>, res: Response) => {
+            if (req.query.login) {
+                const limit = parseInt(req.query.limit, 10) || 1;
+                const { login } = req.query;
 
-            res.json(getAutosuggestUsers(users, login, limit));
+                res.json(getAutosuggestUsers(users, login, limit));
+            }
+
+            res.json(users);
         }
+    )
+    .get(
+        '/:id',
+        validator.params(schemes.getUserByIdSchema),
+        (req: ValidatedRequest<UsersApi.GetUsersByIdSchema>, res: Response) => {
+            res.json(users
+                .find((user) => user.id === req.params.id)
+            );
+        }
+    )
+    .post(
+        '/',
+        validator.body(schemes.postUserSchema),
+        (req: ValidatedRequest<UsersApi.PostUserSchema>, res: Response) => {
+            users.push({
+                ...req.body,
+                id: uuidv1(),
+                isDeleted: false
+            });
 
-        res.json(users);
-    })
-    .get('/:id', (req: Request<UsersApi.Params>, res: Response) => {
-        res.json(users
-            .find((user) => user.id === req.params.id)
-        );
-    })
-    .post('/', (req: Request, res: Response) => {
-        users.push({
-            ...req.body,
-            id: uuidv1(),
-            isDeleted: false
-        });
+            res.json(users);
+        }
+    )
+    .put(
+        '/:id',
+        validator.body(schemes.putUserBodySchema),
+        validator.params(schemes.putUserParamsSchema),
+        (req: ValidatedRequest<UsersApi.PutUserSchema>, res: Response) => {
+            users = users.map((user): UsersApi.User => {
+                if (user.id === req.params.id) {
+                    return {
+                        ...user,
+                        ...req.body
+                    };
+                }
 
-        res.json(users);
-    })
-    .put('/:id', (req: Request<UsersApi.Params>, res: Response) => {
-        users = users.map((user): UsersApi.User => {
-            if (user.id === req.params.id) {
-                return {
-                    ...user,
-                    ...req.body
-                };
-            }
+                return user;
+            });
 
-            return user;
-        });
+            res.json(users);
+        }
+    )
+    .delete(
+        '/:id',
+        validator.params(schemes.deleteUserSchema),
+        (req: ValidatedRequest<UsersApi.DeleteUserSchema>, res: Response) => {
+            users = users.map((user): UsersApi.User => {
+                if (user.id === req.params.id) {
+                    return {
+                        ...user,
+                        isDeleted: true
+                    };
+                }
 
-        res.json(users);
-    })
-    .delete('/:id', (req: Request<UsersApi.Params>, res: Response) => {
-        users = users.map((user): UsersApi.User => {
-            if (user.id === req.params.id) {
-                return {
-                    ...user,
-                    isDeleted: true
-                };
-            }
+                return user;
+            });
 
-            return user;
-        });
-
-        res.json(users);
-    });
+            res.json(users);
+        }
+    );

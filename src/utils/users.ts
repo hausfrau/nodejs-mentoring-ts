@@ -6,7 +6,7 @@ export function getAutosuggestUsers(
     limit: number = 1
 ): UsersApi.User[] {
     return users
-        .filter((user) => !user.login.search(loginSubstring))
+        .filter((user) => user.login.search(loginSubstring) !== -1)
         .sort((a, b) => {
             if (a.login > b.login) {
                 return 1;
